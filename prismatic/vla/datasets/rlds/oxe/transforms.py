@@ -27,6 +27,33 @@ from prismatic.vla.datasets.rlds.utils.data_utils import (
     relabel_bridge_actions,
 )
 
+def drone_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Transforms drone/flying vehicle dataset to OpenVLA format.
+    """
+    # Assuming the action is 7D to match OpenVLA expectations
+    # Your action has 5 values per step, let's pad it to 7D if needed
+    action_dim = trajectory["steps/action"].shape[-1]
+    if action_dim < 7:
+        # Pad to make it 7D (3D position + 3D rotation + 1D gripper-like control)
+        padding = tf.zeros((tf.shape(trajectory["steps/action"])[0], 7 - action_dim), dtype=tf.float32)
+        trajectory["action"] = tf.concat([trajectory["steps/action"], padding], axis=-1)
+    else:
+        trajectory["action"] = trajectory["steps/action"]
+    
+    # Handle observation
+    trajectory["observation"] = {}
+    
+    # Handle images
+    trajectory["observation"]["image"] = trajectory["steps/observation/image"]
+    
+    # Handle state (proprioceptive state)
+    trajectory["observation"]["proprio"] = trajectory["steps/observation/state"]
+    
+    # Handle language instruction
+    trajectory["language_instruction"] = trajectory["steps/language_instruction"]
+    
+    return trajectory
 
 def bridge_oxe_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -848,6 +875,8 @@ def aloha_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
 
 # === Registry ===
 OXE_STANDARDIZATION_TRANSFORMS = {
+    # Add to OXE_STANDARDIZATION_TRANSFORMS
+    "drone_navigation" : drone_dataset_transform,
     "bridge_oxe": bridge_oxe_dataset_transform,
     "bridge_orig": bridge_orig_dataset_transform,
     "bridge_dataset": bridge_orig_dataset_transform,

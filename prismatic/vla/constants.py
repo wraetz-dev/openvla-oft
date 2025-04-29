@@ -23,6 +23,14 @@ class NormalizationType(str, Enum):
 
 
 # Define constants for each robot platform
+# Define constants for your drone dataset
+DRONE_CONSTANTS = {
+    "NUM_ACTIONS_CHUNK": 8,  # Number of actions to predict at once (adjust based on your task)
+    "ACTION_DIM": 7,         # Padded to 7D to match OpenVLA expectations
+    "PROPRIO_DIM": 5,        # Based on your state dimension
+    "ACTION_PROPRIO_NORMALIZATION_TYPE": NormalizationType.BOUNDS,  # Choose appropriate normalization
+}
+
 LIBERO_CONSTANTS = {
     "NUM_ACTIONS_CHUNK": 8,
     "ACTION_DIM": 7,
@@ -48,8 +56,9 @@ BRIDGE_CONSTANTS = {
 # Function to detect robot platform from command line arguments
 def detect_robot_platform():
     cmd_args = " ".join(sys.argv).lower()
-
-    if "libero" in cmd_args:
+    if "drone" in cmd_args or "navigation" in cmd_args:
+        return "DRONE"
+    elif "libero" in cmd_args:
         return "LIBERO"
     elif "aloha" in cmd_args:
         return "ALOHA"
@@ -64,7 +73,9 @@ def detect_robot_platform():
 ROBOT_PLATFORM = detect_robot_platform()
 
 # Set the appropriate constants based on the detected platform
-if ROBOT_PLATFORM == "LIBERO":
+if ROBOT_PLATFORM == "DRONE":
+    constants = DRONE_CONSTANTS
+elif ROBOT_PLATFORM == "LIBERO":
     constants = LIBERO_CONSTANTS
 elif ROBOT_PLATFORM == "ALOHA":
     constants = ALOHA_CONSTANTS

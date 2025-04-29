@@ -71,8 +71,8 @@ class FinetuneConfig:
     vla_path: str = "openvla/openvla-7b"             # Path to OpenVLA model (on HuggingFace Hub or stored locally)
 
     # Dataset
-    data_root_dir: Path = Path("datasets/rlds")      # Directory containing RLDS datasets
-    dataset_name: str = "aloha_scoop_x_into_bowl"    # Name of fine-tuning dataset (e.g., `aloha_scoop_x_into_bowl`)
+    data_root_dir: Path = Path("datasets/drone")      # Directory containing RLDS datasets
+    dataset_name: str = "drone_navigation"    # Name of fine-tuning dataset (e.g., `aloha_scoop_x_into_bowl`)
     run_root_dir: Path = Path("runs")                # Path to directory to store logs & checkpoints
     shuffle_buffer_size: int = 100_000               # Dataloader shuffle buffer size (can reduce if OOM errors occur)
 
@@ -82,7 +82,7 @@ class FinetuneConfig:
     num_diffusion_steps: int = 50                    # (When `diffusion==True`) Number of diffusion steps for training
     use_film: bool = False                           # If True, uses FiLM to infuse language inputs into visual features
     num_images_in_input: int = 1                     # Number of images in the VLA input (default: 1)
-    use_proprio: bool = False                        # If True, includes robot proprioceptive state in input
+    use_proprio: bool = True                        # If True, includes robot proprioceptive state in input
 
     # Training configuration
     batch_size: int = 8                              # Batch size per device (total batch size = batch_size * num GPUs)
@@ -111,8 +111,8 @@ class FinetuneConfig:
                                                      #         False and merge final checkpoint offline!
 
     # Logging
-    wandb_entity: str = "your-wandb-entity"          # Name of WandB entity
-    wandb_project: str = "your-wandb-project"        # Name of WandB project
+    wandb_entity: str = "drone_navigation_1"          # Name of WandB entity
+    wandb_project: str = "drone_navigation"        # Name of WandB project
     run_id_note: Optional[str] = None                # Extra note to add to end of run ID for logging
     run_id_override: Optional[str] = None            # Optional string to override the run ID with
     wandb_log_freq: int = 10                         # WandB logging frequency in steps
