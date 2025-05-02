@@ -33,26 +33,32 @@ def drone_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
     """
     # Assuming the action is 7D to match OpenVLA expectations
     # Your action has 5 values per step, let's pad it to 7D if needed
-    action_dim = trajectory["steps/action"].shape[-1]
+    print(trajectory)
+    action_dim = trajectory["action"].shape[-1]
     if action_dim < 7:
         # Pad to make it 7D (3D position + 3D rotation + 1D gripper-like control)
-        padding = tf.zeros((tf.shape(trajectory["steps/action"])[0], 7 - action_dim), dtype=tf.float32)
-        trajectory["action"] = tf.concat([trajectory["steps/action"], padding], axis=-1)
+        padding = tf.zeros((tf.shape(trajectory["action"])[0], 7 - action_dim), dtype=tf.float32)
+        trajectory["action"] = tf.concat([trajectory["action"], padding], axis=-1)
     else:
-        trajectory["action"] = trajectory["steps/action"]
+        pass
+#        trajectory["action"] = trajectory["steps/action"]
     
     # Handle observation
-    trajectory["observation"] = {}
+    #trajectory["observation"] = {}
     
     # Handle images
-    trajectory["observation"]["image"] = trajectory["steps/observation/image"]
+    if "image" in trajectory["observation"]:
+        # Ensure the image is in uint8 format
+        trajectory["observation"]["image"] = tf.cast(trajectory["observation"]["image"], tf.uint8)
     
     # Handle state (proprioceptive state)
-    trajectory["observation"]["proprio"] = trajectory["steps/observation/state"]
+    if "state" in trajectory["observation"]:
+        trajectory["observation"]["proprio"] = trajectory["observation"]["state"]
     
     # Handle language instruction
-    trajectory["language_instruction"] = trajectory["steps/language_instruction"]
-    
+    trajectory["task"] = trajectory["language_instruction"]
+    print(trajectory)
+    print('*'*50)
     return trajectory
 
 def bridge_oxe_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:

@@ -59,6 +59,7 @@ OXE_DATASET_CONFIGS = {
         "state_obs_keys": ["proprio"],
         "state_encoding": StateEncoding.POS_EULER,  # Choose appropriate encoding
         "action_encoding": ActionEncoding.EEF_POS,  # Or create a custom encoding if needed
+	"language_key": "steps/language_instruction",
         # Mark if any dimensions of the action are absolute vs. relative
         "absolute_action_mask": [False, False, False, False, False, False, False],  # Adjust based on your action semantics
     },

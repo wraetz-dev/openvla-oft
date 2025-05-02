@@ -10,6 +10,8 @@ import json
 from functools import partial
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
+import types
+
 import dlimp as dl
 import numpy as np
 import tensorflow as tf
@@ -33,6 +35,43 @@ overwatch = initialize_overwatch(__name__)
 
 # Configure Tensorflow with *no GPU devices* (to prevent clobber with PyTorch)
 tf.config.set_visible_devices([], "GPU")
+
+
+# Store the original from_rlds method
+original_from_rlds = dl.DLataset.from_rlds
+
+# Define the patched method
+def patched_from_rlds(
+        cls,
+        builder,
+        split: str = "train",
+        shuffle: bool = True,
+        num_parallel_reads = tf.data.AUTOTUNE,
+        decoders = None
+    ):
+
+    def wrapped_as_dataset(original_func, *args, **kwargs):
+        # Remove the decoders parameter if it's present
+        if "decoders" in kwargs:
+            # Either remove completely or set to None
+            kwargs["decoders"] = None
+        return original_func(*args, **kwargs)
+    
+    # Store the original as_dataset method
+    original_as_dataset = builder.as_dataset
+    
+    # Replace with our wrapped version
+    builder.as_dataset = partial(wrapped_as_dataset, original_as_dataset)
+    
+    try:
+        # Call the original from_rlds with our modified builder
+        return original_from_rlds(builder, split, shuffle, num_parallel_reads)
+    finally:
+        # Restore the original as_dataset method
+        builder.as_dataset = original_as_dataset
+
+# Replace the method
+dl.DLataset.from_rlds = classmethod(patched_from_rlds)
 
 
 # ruff: noqa: B006
@@ -133,6 +172,20 @@ def make_dataset_from_rlds(
         if standardize_fn is not None:
             traj = standardize_fn(traj)
 
+	    # Check for SkipDecoding objects and handle them
+        def safe_access(data, key):
+            if key not in data:
+                return None
+            value = data[key]
+            if isinstance(value, tfds.decode.SkipDecoding):
+                # Either return empty tensor for skipped data
+                # For images, return empty string which will be handled later in decode_and_resize
+                if key.startswith('image') or key.endswith('image'):
+                    return tf.constant("")
+                # For other data, return empty tensor with appropriate shape
+                return tf.zeros([tf.shape(traj['action'])[0], 1], dtype=tf.float32)
+            return value
+
         if not all(k in traj for k in REQUIRED_KEYS):
             raise ValueError(
                 f"Trajectory is missing keys: {REQUIRED_KEYS - set(traj.keys())}. " "Did you write a `standardize_fn`?"
@@ -146,7 +199,11 @@ def make_dataset_from_rlds(
             if old is None:
                 new_obs[f"image_{new}"] = tf.repeat("", traj_len)  # padding
             else:
-                new_obs[f"image_{new}"] = old_obs[old]
+                img_data = safe_access(old_obs, old)
+                if img_data is None:
+                    new_obs[f"image_{new}"] = tf.repeat("", traj_len) # padding
+                else:
+                    new_obs[f"image_{new}"] = img_data
 
         for new, old in depth_obs_keys.items():
             if old is None:
@@ -186,6 +243,7 @@ def make_dataset_from_rlds(
             "dataset_name": tf.repeat(name, traj_len),
         }
 
+        #absolute_action_mask = None
         if absolute_action_mask is not None:
             if len(absolute_action_mask) != traj["action"].shape[-1]:
                 raise ValueError(
@@ -200,7 +258,8 @@ def make_dataset_from_rlds(
         return traj
 
     builder = tfds.builder(name, data_dir=data_dir)
-
+    print("BUILDER********")
+    print(dataset_statistics)
     # load or compute dataset statistics
     if isinstance(dataset_statistics, str):
         with tf.io.gfile.GFile(dataset_statistics, "r") as f:
@@ -222,6 +281,7 @@ def make_dataset_from_rlds(
     dataset_statistics = tree_map(np.array, dataset_statistics)
 
     # skip normalization for certain action dimensions
+    #action_normalization_mask = None
     if action_normalization_mask is not None:
         if len(action_normalization_mask) != dataset_statistics["action"]["mean"].shape[-1]:
             raise ValueError(
@@ -233,7 +293,12 @@ def make_dataset_from_rlds(
     # construct the dataset
     split = "train" if train else "val"
 
-    dataset = dl.DLataset.from_rlds(builder, split=split, shuffle=shuffle, num_parallel_reads=num_parallel_reads)
+    decoders = {
+#        "steps/observation/image": tfds.decode.SkipDecoding(),  # First register all as skip
+        "*": None  # Then force decode everything
+    }
+    print('*'*50)
+    dataset = dl.DLataset.from_rlds(builder, split=split, shuffle=shuffle, num_parallel_reads=num_parallel_reads, decoders=decoders)
 
     dataset = dataset.traj_map(restructure, num_parallel_calls)
     dataset = dataset.traj_map(
