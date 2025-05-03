@@ -291,7 +291,7 @@ def make_dataset_from_rlds(
         dataset_statistics["action"]["mask"] = np.array(action_normalization_mask)
 
     # construct the dataset
-    split = "train" if train else "val"
+    split = "train" if train else "validation"
 
     decoders = {
 #        "steps/observation/image": tfds.decode.SkipDecoding(),  # First register all as skip
