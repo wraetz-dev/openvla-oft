@@ -74,7 +74,7 @@ class FinetuneConfig:
     data_root_dir: Path = Path("~/datasets/cognitive_drone")      # Directory containing RLDS datasets
     dataset_name: str = "drone_navigation"    # Name of fine-tuning dataset (e.g., `aloha_scoop_x_into_bowl`)
     run_root_dir: Path = Path("runs")                # Path to directory to store logs & checkpoints
-    shuffle_buffer_size: int = 25_000               # Dataloader shuffle buffer size (can reduce if OOM errors occur)
+    shuffle_buffer_size: int = 100_000               # Dataloader shuffle buffer size (can reduce if OOM errors occur)
 
     # Algorithm and architecture
     use_l1_regression: bool = True                   # If True, trains continuous action head with L1 regression objective
@@ -85,16 +85,16 @@ class FinetuneConfig:
     use_proprio: bool = True                        # If True, includes robot proprioceptive state in input
 
     # Training configuration
-    batch_size: int = 4                              # Batch size per device (total batch size = batch_size * num GPUs)
+    batch_size: int = 8                              # Batch size per device (total batch size = batch_size * num GPUs)
     learning_rate: float = 5e-4                      # Learning rate
     lr_warmup_steps: int = 0                         # Number of steps to warm up learning rate (from 10% to 100%)
     num_steps_before_decay: int = 100_000            # Number of steps before LR decays by 10x
     grad_accumulation_steps: int = 1                 # Number of gradient accumulation steps
-    max_steps: int = 200_000                         # Max number of training steps
-    use_val_set: bool = False                        # If True, uses validation set and log validation metrics
-    val_freq: int = 10_000                           # (When `use_val_set==True`) Validation set logging frequency in steps
+    max_steps: int = 20_000                          # Max number of training steps
+    use_val_set: bool = True                         # If True, uses validation set and log validation metrics
+    val_freq: int = 2_000                           # (When `use_val_set==True`) Validation set logging frequency in steps
     val_time_limit: int = 180                        # (When `use_val_set==True`) Time limit for computing validation metrics
-    save_freq: int = 10_000                          # Checkpoint saving frequency in steps
+    save_freq: int = 5_000                          # Checkpoint saving frequency in steps
     save_latest_checkpoint_only: bool = False        # If True, saves only 1 checkpoint, overwriting latest checkpoint
                                                      #   (If False, saves all checkpoints)
     resume: bool = False                             # If True, resumes from checkpoint
