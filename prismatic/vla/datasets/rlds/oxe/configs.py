@@ -53,6 +53,15 @@ class ActionEncoding(IntEnum):
 # === Individual Dataset Configs ===
 OXE_DATASET_CONFIGS = {
     # Add to OXE_DATASET_CONFIGS
+    "pegasus_drone_sim" : {
+        "image_obs_keys": {"primary": "image", "secondary": None, "wrist": None},
+        "depth_obs_keys": {"primary": None, "secondary": None, "wrist": None},
+        "state_obs_keys": ["proprio"],
+        "state_encoding": StateEncoding.POS_EULER,  # Choose appropriate encoding
+        "action_encoding": ActionEncoding.EEF_POS,  # Or create a custom encoding if needed
+        "language_key": "language_instruction",
+        "absolute_action_mask": [False, False, False, False, False, False, False],  # Adjust based on your action semantics
+	},
     "drone_navigation" : {
         "image_obs_keys": {"primary": "image", "secondary": None, "wrist": None},
         "depth_obs_keys": {"primary": None, "secondary": None, "wrist": None},

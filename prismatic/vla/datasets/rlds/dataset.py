@@ -71,7 +71,7 @@ def patched_from_rlds(
         builder.as_dataset = original_as_dataset
 
 # Replace the method
-dl.DLataset.from_rlds = classmethod(patched_from_rlds)
+# dl.DLataset.from_rlds = classmethod(patched_from_rlds)
 
 
 # ruff: noqa: B006
@@ -259,7 +259,6 @@ def make_dataset_from_rlds(
 
     builder = tfds.builder(name, data_dir=data_dir)
     print("BUILDER********")
-    print(dataset_statistics)
     # load or compute dataset statistics
     if isinstance(dataset_statistics, str):
         with tf.io.gfile.GFile(dataset_statistics, "r") as f:
@@ -291,14 +290,20 @@ def make_dataset_from_rlds(
         dataset_statistics["action"]["mask"] = np.array(action_normalization_mask)
 
     # construct the dataset
-    split = "train" if train else "validation"
+    # Check available splits and use "train" if "validation" is not available
+    available_splits = builder.info.splits.keys()
+    if train:
+        split = "train"
+    else:
+        # If validation split doesn't exist, use train split
+        split = "validation" if "validation" in available_splits else "train"
 
     decoders = {
 #        "steps/observation/image": tfds.decode.SkipDecoding(),  # First register all as skip
         "*": None  # Then force decode everything
     }
     print('*'*50)
-    dataset = dl.DLataset.from_rlds(builder, split=split, shuffle=shuffle, num_parallel_reads=num_parallel_reads, decoders=decoders)
+    dataset = dl.DLataset.from_rlds(builder, split=split, shuffle=shuffle, num_parallel_reads=num_parallel_reads)#, decoders=decoders)
 
     dataset = dataset.traj_map(restructure, num_parallel_calls)
     dataset = dataset.traj_map(

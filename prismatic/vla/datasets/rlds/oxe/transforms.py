@@ -33,12 +33,13 @@ def drone_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
     """
     # Assuming the action is 7D to match OpenVLA expectations
     # Your action has 5 values per step, let's pad it to 7D if needed
+    print('*'*50)
     print(trajectory)
-    action_dim = trajectory["action"].shape[-1]
+    action_dim = trajectory["action"]['control_values'].shape[-1]
     if action_dim < 7:
         # Pad to make it 7D (3D position + 3D rotation + 1D gripper-like control)
-        padding = tf.zeros((tf.shape(trajectory["action"])[0], 7 - action_dim), dtype=tf.float32)
-        trajectory["action"] = tf.concat([trajectory["action"], padding], axis=-1)
+        padding = tf.zeros((tf.shape(trajectory["action"]['control_values'])[0], 7 - action_dim), dtype=tf.float32)
+        trajectory["action"] = tf.concat([trajectory["action"]['control_values'], padding], axis=-1)
     else:
         pass
 #        trajectory["action"] = trajectory["steps/action"]
@@ -52,13 +53,21 @@ def drone_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
         trajectory["observation"]["image"] = tf.cast(trajectory["observation"]["image"], tf.uint8)
     
     # Handle state (proprioceptive state)
-    if "state" in trajectory["observation"]:
-        trajectory["observation"]["proprio"] = trajectory["observation"]["state"]
+    if "velocity" in trajectory["observation"]:
+        # trajectory["observation"]["proprio"] = trajectory["observation"]["velocity"]
+        velocity = trajectory["observation"]["velocity"]
+        velocity_dim = velocity.shape[-1]
+        if velocity_dim < 5:
+            # Pad with zeros to make it 5D
+            padding = tf.zeros((tf.shape(velocity)[0], 5 - velocity_dim), dtype=tf.float32)
+            trajectory["observation"]["proprio"] = tf.concat([velocity, padding], axis=-1)
+        else:
+            trajectory["observation"]["proprio"] = velocity
     
     # Handle language instruction
-    trajectory["task"] = trajectory["language_instruction"]
-    print(trajectory)
-    print('*'*50)
+    trajectory["language_instruction"] = tf.fill(tf.shape(trajectory["action"])[:1], "Attack the tank in front of you")
+    # print(trajectory)
+    # print('*'*50)
     return trajectory
 
 def bridge_oxe_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
@@ -882,6 +891,7 @@ def aloha_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
 # === Registry ===
 OXE_STANDARDIZATION_TRANSFORMS = {
     # Add to OXE_STANDARDIZATION_TRANSFORMS
+    "pegasus_drone_sim": drone_dataset_transform,
     "drone_navigation" : drone_dataset_transform,
     "bridge_oxe": bridge_oxe_dataset_transform,
     "bridge_orig": bridge_orig_dataset_transform,

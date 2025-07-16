@@ -71,8 +71,8 @@ class FinetuneConfig:
     vla_path: str = "openvla/openvla-7b"             # Path to OpenVLA model (on HuggingFace Hub or stored locally)
 
     # Dataset
-    data_root_dir: Path = Path("~/datasets/cognitive_drone")      # Directory containing RLDS datasets
-    dataset_name: str = "drone_navigation"    # Name of fine-tuning dataset (e.g., `aloha_scoop_x_into_bowl`)
+    data_root_dir: Path = Path("~/datasets")      # Directory containing RLDS datasets
+    dataset_name: str = "pegasus_drone_sim"    # Name of fine-tuning dataset (e.g., `aloha_scoop_x_into_bowl`)
     run_root_dir: Path = Path("runs")                # Path to directory to store logs & checkpoints
     shuffle_buffer_size: int = 100_000               # Dataloader shuffle buffer size (can reduce if OOM errors occur)
 
@@ -97,8 +97,8 @@ class FinetuneConfig:
     save_freq: int = 5_000                          # Checkpoint saving frequency in steps
     save_latest_checkpoint_only: bool = False        # If True, saves only 1 checkpoint, overwriting latest checkpoint
                                                      #   (If False, saves all checkpoints)
-    resume: bool = False                             # If True, resumes from checkpoint
-    resume_step: Optional[int] = None                # (When `resume==True`) Step number that we are resuming from
+    resume: bool = False                          # If True, resumes from checkpoint
+    resume_step: Optional[int] = 5_000                # (When `resume==True`) Step number that we are resuming from
     image_aug: bool = True                           # If True, trains with image augmentations (HIGHLY RECOMMENDED)
     diffusion_sample_freq: int = 50                  # (When `use_diffusion==True`) Frequency for sampling in steps
 
@@ -112,7 +112,7 @@ class FinetuneConfig:
 
     # Logging
     wandb_entity: str = "wraetz-siteworks"          # Name of WandB entity
-    wandb_project: str = "openvla-oft-finetune"        # Name of WandB project
+    wandb_project: str = "openvla-oft-finetune-pegasus"        # Name of WandB project
     run_id_note: Optional[str] = None                # Extra note to add to end of run ID for logging
     run_id_override: Optional[str] = None            # Optional string to override the run ID with
     wandb_log_freq: int = 10                         # WandB logging frequency in steps
