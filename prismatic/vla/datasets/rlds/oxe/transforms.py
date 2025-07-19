@@ -16,6 +16,7 @@ Transforms adopt the following structure:
 """
 
 from typing import Any, Dict
+import json
 
 import tensorflow as tf
 
@@ -33,8 +34,9 @@ def drone_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
     """
     # Assuming the action is 7D to match OpenVLA expectations
     # Your action has 5 values per step, let's pad it to 7D if needed
-    print('*'*50)
-    print(trajectory)
+    print("drone_dataset_transform******** transforms.py line 36")
+    # print('*'*50)
+    # print(trajectory)
     action_dim = trajectory["action"]['control_values'].shape[-1]
     if action_dim < 7:
         # Pad to make it 7D (3D position + 3D rotation + 1D gripper-like control)
@@ -45,15 +47,25 @@ def drone_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
 #        trajectory["action"] = trajectory["steps/action"]
     
     # Handle observation
-    #trajectory["observation"] = {}
-    
+    # trajectory["observation"] = {}
+    trajectory["observation"].pop("orientation")
+    trajectory["observation"].pop("distance_to_target")
+    trajectory["observation"].pop("position")
     # Handle images
-    if "image" in trajectory["observation"]:
-        # Ensure the image is in uint8 format
-        trajectory["observation"]["image"] = tf.cast(trajectory["observation"]["image"], tf.uint8)
+    # if "image" in trajectory["observation"]:
+    #     # Ensure the image is in uint8 format
+    #     trajectory["observation"]["image"] = tf.cast(trajectory["observation"]["image"], tf.uint8)
     
     # Handle state (proprioceptive state)
-    if "velocity" in trajectory["observation"]:
+    if "control" in trajectory["observation"]:
+        control = trajectory["observation"]["control"]
+        control_dim = control.shape[-1]
+        if control_dim < 5:
+            padding = tf.zeros((tf.shape(control)[0], 5 - control_dim), dtype=tf.float32)
+            trajectory["observation"]["proprio"] = tf.concat([control, padding], axis=-1)
+        else:
+            trajectory["observation"]["proprio"] = control
+    elif "velocity" in trajectory["observation"]:
         # trajectory["observation"]["proprio"] = trajectory["observation"]["velocity"]
         velocity = trajectory["observation"]["velocity"]
         velocity_dim = velocity.shape[-1]
@@ -66,8 +78,48 @@ def drone_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
     
     # Handle language instruction
     trajectory["language_instruction"] = tf.fill(tf.shape(trajectory["action"])[:1], "Attack the tank in front of you")
+    # print('*'*50)
     # print(trajectory)
     # print('*'*50)
+    
+    # # Write trajectory to JSON file
+    # def convert_tf_to_json(obj):
+    #     """Recursively convert TensorFlow objects to JSON-serializable types"""
+    #     if isinstance(obj, dict):
+    #         return {key: convert_tf_to_json(value) for key, value in obj.items()}
+    #     elif isinstance(obj, list):
+    #         return [convert_tf_to_json(item) for item in obj]
+    #     elif hasattr(obj, 'numpy'):
+    #         try:
+    #             return obj.numpy().tolist()
+    #         except:
+    #             return str(obj)
+    #     elif hasattr(obj, 'shape'):
+    #         # Handle TensorFlow objects with shape attribute
+    #         return str(obj)
+    #     else:
+    #         return obj
+    
+    # try:
+    #     # Convert all TensorFlow objects to JSON-serializable types
+    #     trajectory_json = convert_tf_to_json(trajectory)
+        
+    #     with open('trajectory_v1.json', 'w') as f:
+    #         json.dump(trajectory_json, f, indent=2)
+    #     print(f"Trajectory saved to trajectory_v1.json")
+    # except Exception as e:
+    #     print(f"Error saving trajectory to JSON: {e}")
+    #     # Fallback: save a simplified version with just string representations
+    #     try:
+    #         trajectory_simple = {}
+    #         for key, value in trajectory.items():
+    #             trajectory_simple[key] = str(value)
+    #         with open('trajectory_v1_simple.json', 'w') as f:
+    #             json.dump(trajectory_simple, f, indent=2)
+    #         print(f"Simplified trajectory saved to trajectory_v1_simple.json")
+    #     except Exception as e2:
+    #         print(f"Error saving simplified trajectory: {e2}")
+    
     return trajectory
 
 def bridge_oxe_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:

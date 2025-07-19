@@ -37,41 +37,41 @@ overwatch = initialize_overwatch(__name__)
 tf.config.set_visible_devices([], "GPU")
 
 
-# Store the original from_rlds method
-original_from_rlds = dl.DLataset.from_rlds
+# # Store the original from_rlds method
+# original_from_rlds = dl.DLataset.from_rlds
 
-# Define the patched method
-def patched_from_rlds(
-        cls,
-        builder,
-        split: str = "train",
-        shuffle: bool = True,
-        num_parallel_reads = tf.data.AUTOTUNE,
-        decoders = None
-    ):
+# # Define the patched method
+# def patched_from_rlds(
+#         cls,
+#         builder,
+#         split: str = "train",
+#         shuffle: bool = True,
+#         num_parallel_reads = tf.data.AUTOTUNE,
+#         decoders = None
+#     ):
 
-    def wrapped_as_dataset(original_func, *args, **kwargs):
-        # Remove the decoders parameter if it's present
-        if "decoders" in kwargs:
-            # Either remove completely or set to None
-            kwargs["decoders"] = None
-        return original_func(*args, **kwargs)
+#     def wrapped_as_dataset(original_func, *args, **kwargs):
+#         # Remove the decoders parameter if it's present
+#         if "decoders" in kwargs:
+#             # Either remove completely or set to None
+#             kwargs["decoders"] = None
+#         return original_func(*args, **kwargs)
     
-    # Store the original as_dataset method
-    original_as_dataset = builder.as_dataset
+#     # Store the original as_dataset method
+#     original_as_dataset = builder.as_dataset
     
-    # Replace with our wrapped version
-    builder.as_dataset = partial(wrapped_as_dataset, original_as_dataset)
+#     # Replace with our wrapped version
+#     builder.as_dataset = partial(wrapped_as_dataset, original_as_dataset)
     
-    try:
-        # Call the original from_rlds with our modified builder
-        return original_from_rlds(builder, split, shuffle, num_parallel_reads)
-    finally:
-        # Restore the original as_dataset method
-        builder.as_dataset = original_as_dataset
+#     try:
+#         # Call the original from_rlds with our modified builder
+#         return original_from_rlds(builder, split, shuffle, num_parallel_reads)
+#     finally:
+#         # Restore the original as_dataset method
+#         builder.as_dataset = original_as_dataset
 
-# Replace the method
-# dl.DLataset.from_rlds = classmethod(patched_from_rlds)
+# # Replace the method
+# # dl.DLataset.from_rlds = classmethod(patched_from_rlds)
 
 
 # ruff: noqa: B006
@@ -258,7 +258,7 @@ def make_dataset_from_rlds(
         return traj
 
     builder = tfds.builder(name, data_dir=data_dir)
-    print("BUILDER********")
+    print("BUILDER******** dataset.py line 261")
     # load or compute dataset statistics
     if isinstance(dataset_statistics, str):
         with tf.io.gfile.GFile(dataset_statistics, "r") as f:
@@ -290,21 +290,20 @@ def make_dataset_from_rlds(
         dataset_statistics["action"]["mask"] = np.array(action_normalization_mask)
 
     # construct the dataset
-    # Check available splits and use "train" if "validation" is not available
-    available_splits = builder.info.splits.keys()
-    if train:
-        split = "train"
-    else:
-        # If validation split doesn't exist, use train split
-        split = "validation" if "validation" in available_splits else "train"
+    split = "train" if train else "validation"
 
     decoders = {
 #        "steps/observation/image": tfds.decode.SkipDecoding(),  # First register all as skip
         "*": None  # Then force decode everything
     }
-    print('*'*50)
+    print("dataset.py line 305 (It is going to hang here):", '*'*50)
     dataset = dl.DLataset.from_rlds(builder, split=split, shuffle=shuffle, num_parallel_reads=num_parallel_reads)#, decoders=decoders)
-
+    # for ind, element in enumerate(dataset.as_numpy_iterator()):
+    #     print(ind)
+    #     print(element.keys())
+    #     print("*"*50)
+    #     if ind > 10:
+    #         break
     dataset = dataset.traj_map(restructure, num_parallel_calls)
     dataset = dataset.traj_map(
         partial(
@@ -382,6 +381,7 @@ def apply_trajectory_transforms(
 
     # updates the "task" dict
     if goal_relabeling_strategy is not None:
+        print("RUNNING GOAL RELABELING")
         dataset = dataset.traj_map(
             partial(getattr(goal_relabeling, goal_relabeling_strategy), **goal_relabeling_kwargs),
             num_parallel_calls,
@@ -389,6 +389,7 @@ def apply_trajectory_transforms(
 
     # must run task augmentation before chunking, in case it changes goal timesteps
     if train and task_augment_strategy is not None:
+        print("RUNNING TASK AUGMENTATION")
         # perform task augmentation (e.g., dropping keys)
         dataset = dataset.traj_map(
             partial(
@@ -396,8 +397,18 @@ def apply_trajectory_transforms(
                 **task_augment_kwargs,
             ),
             num_parallel_calls,
-        )
+        )   
 
+    # print(train, subsample_length)
+    # print("apply_trajectory_transforms******** dataset.py line 406")
+    # for ind, element in enumerate(dataset.as_numpy_iterator()):
+    #     print(ind)
+    #     print(element.keys())
+    #     print("*"*50)
+    #     if ind > 10:
+    #         break
+    print("Error happens here dataset.py line 416")
+    # ERROR HAPPENS HERE vvvvv
     # chunks observations and actions, giving them a new axis at index 1 of size `window_size` and
     # `window_size + future_action_window_size`, respectively
     dataset = dataset.traj_map(
@@ -408,6 +419,15 @@ def apply_trajectory_transforms(
         ),
         num_parallel_calls,
     )
+
+    # print(train, subsample_length)
+    # print("apply_trajectory_transforms******** dataset.py line 418")
+    # for ind, element in enumerate(dataset.as_numpy_iterator()):
+    #     print(ind)
+    #     print(element.keys())
+    #     print("*"*50)
+    #     if ind > 10:
+    #         break
 
     if train and subsample_length is not None:
         dataset = dataset.traj_map(
@@ -465,6 +485,7 @@ def apply_frame_transforms(
 
     # Convenience wrapper that takes a function that operates on a non-chunked "observation" dict and applies
     # it to the chunked "observation" dict as well as the non-chunked "task" dict
+    # print("apply_frame_transforms******** dataset.py line 494")
     def apply_obs_transform(fn: Callable[[Dict], Dict], frame: Dict) -> Dict:
         frame["task"] = fn(frame["task"])
         frame["observation"] = dl.vmap(fn)(frame["observation"])
@@ -487,7 +508,7 @@ def apply_frame_transforms(
             return apply_obs_transform(aug_fn, frame)
 
         dataset = dataset.frame_map(aug, num_parallel_calls)
-
+    # print("apply_frame_transforms******** dataset.py line 493")
     return dataset
 
 
@@ -558,6 +579,7 @@ def make_interleaved_dataset(
             datasets according to their sampling weights. If None, defaults to AUTOTUNE for every dataset.
     """
     # Default to uniform sampling (if `sample_weights` is not specified)
+    # print("dataset.py line 567 MAKE INTERLEAVED DATASET")
     if not sample_weights:
         sample_weights = [1.0] * len(dataset_kwargs_list)
 
@@ -606,6 +628,7 @@ def make_interleaved_dataset(
         threads_per_dataset,
         reads_per_dataset,
     ):
+        # print(f"dataset.py line 616 {dataset_kwargs['name']}")
         dataset_frame_transform_kwargs = (
             dataset_kwargs.pop("dataset_frame_transform_kwargs")
             if "dataset_frame_transform_kwargs" in dataset_kwargs
@@ -618,18 +641,35 @@ def make_interleaved_dataset(
             num_parallel_reads=reads,
             dataset_statistics=all_dataset_statistics[dataset_kwargs["name"]],
         )
+
         dataset = apply_trajectory_transforms(
             dataset.repeat(),
             **traj_transform_kwargs,
             num_parallel_calls=threads,
             train=train,
         ).flatten(num_parallel_calls=threads)
+
+        # print(f"dataset.py line 637 {dataset_kwargs['name']}")
+        # for ind, element in enumerate(dataset.as_numpy_iterator()):
+        #     print(ind)
+        #     print(element.keys())
+        #     print("*"*50)
+        #     if ind > 10:
+        #         break
+
+
         dataset = apply_per_dataset_frame_transforms(dataset, **dataset_frame_transform_kwargs)
         datasets.append(dataset)
 
     # Interleave at the Frame Level
     dataset: dl.DLataset = dl.DLataset.sample_from_datasets(datasets, sample_weights)
-
+    # print("dataset.py line 639 SAMPLE FROM DATASETS")
+    # for ind, element in enumerate(dataset.as_numpy_iterator()):
+    #     print(ind)
+    #     print(element.keys())
+    #     print("*"*50)
+    #     if ind > 10:
+    #         break
     # Validation =>> fix a single shuffle buffer of data and cache it in RAM; prevents gradual memory increase!
     if not train:
         dataset = dataset.take(shuffle_buffer_size).cache()

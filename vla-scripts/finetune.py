@@ -99,7 +99,7 @@ class FinetuneConfig:
                                                      #   (If False, saves all checkpoints)
     resume: bool = False                          # If True, resumes from checkpoint
     resume_step: Optional[int] = 5_000                # (When `resume==True`) Step number that we are resuming from
-    image_aug: bool = True                           # If True, trains with image augmentations (HIGHLY RECOMMENDED)
+    image_aug: bool = False #Turn this back on                          # If True, trains with image augmentations (HIGHLY RECOMMENDED)
     diffusion_sample_freq: int = 50                  # (When `use_diffusion==True`) Frequency for sampling in steps
 
     # LoRA
