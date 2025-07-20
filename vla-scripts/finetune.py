@@ -80,7 +80,7 @@ class FinetuneConfig:
     use_l1_regression: bool = True                   # If True, trains continuous action head with L1 regression objective
     use_diffusion: bool = False                      # If True, trains continuous action head with diffusion modeling objective (DDIM)
     num_diffusion_steps: int = 50                    # (When `diffusion==True`) Number of diffusion steps for training
-    use_film: bool = False                           # If True, uses FiLM to infuse language inputs into visual features
+    use_film: bool = True                           # If True, uses FiLM to infuse language inputs into visual features
     num_images_in_input: int = 1                     # Number of images in the VLA input (default: 1)
     use_proprio: bool = True                        # If True, includes robot proprioceptive state in input
 
@@ -90,9 +90,9 @@ class FinetuneConfig:
     lr_warmup_steps: int = 0                         # Number of steps to warm up learning rate (from 10% to 100%)
     num_steps_before_decay: int = 100_000            # Number of steps before LR decays by 10x
     grad_accumulation_steps: int = 1                 # Number of gradient accumulation steps
-    max_steps: int = 20_000                          # Max number of training steps
+    max_steps: int = 10_000                          # Max number of training steps
     use_val_set: bool = True                         # If True, uses validation set and log validation metrics
-    val_freq: int = 2_000                           # (When `use_val_set==True`) Validation set logging frequency in steps
+    val_freq: int = 1_000                           # (When `use_val_set==True`) Validation set logging frequency in steps
     val_time_limit: int = 180                        # (When `use_val_set==True`) Time limit for computing validation metrics
     save_freq: int = 5_000                          # Checkpoint saving frequency in steps
     save_latest_checkpoint_only: bool = False        # If True, saves only 1 checkpoint, overwriting latest checkpoint

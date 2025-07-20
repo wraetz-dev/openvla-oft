@@ -183,7 +183,7 @@ def check_model_logic_mismatch(pretrained_checkpoint: str) -> None:
     # Find current files
     curr_files = {"modeling_prismatic.py": None, "configuration_prismatic.py": None}
 
-    for root, _, files in os.walk("./prismatic/"):
+    for root, _, files in os.walk("/home/ubuntu/openvla-oft/prismatic/"):
         for filename in curr_files.keys():
             if filename in files and curr_files[filename] is None:
                 curr_files[filename] = os.path.join(root, filename)

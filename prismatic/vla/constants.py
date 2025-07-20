@@ -55,6 +55,7 @@ BRIDGE_CONSTANTS = {
 
 # Function to detect robot platform from command line arguments
 def detect_robot_platform():
+    return "DRONE"
     cmd_args = " ".join(sys.argv).lower()
     if "drone" in cmd_args or "navigation" in cmd_args:
         return "DRONE"

@@ -65,6 +65,7 @@ class OpenVLAServer:
             self.action_head = get_action_head(cfg, self.vla.llm_dim)
 
         # Check that the model contains the action un-normalization key
+        # print(self.vla.norm_stats)
         assert cfg.unnorm_key in self.vla.norm_stats, f"Action un-norm key {cfg.unnorm_key} not found in VLA `norm_stats`!"
 
         # Get Hugging Face processor
@@ -84,6 +85,10 @@ class OpenVLAServer:
 
             observation = payload
             instruction = observation["instruction"]
+
+            observation['full_image'] = np.array(observation['full_image'], dtype=np.uint8)
+            print(observation['full_image'].shape)
+            print(observation['full_image'].dtype)
 
             action = get_vla_action(
                 self.cfg, self.vla, self.processor, observation, instruction, action_head=self.action_head, proprio_projector=self.proprio_projector, use_film=self.cfg.use_film,
@@ -119,19 +124,19 @@ class DeployConfig:
     # Model-specific parameters
     #################################################################################################################
     model_family: str = "openvla"                    # Model family
-    pretrained_checkpoint: Union[str, Path] = ""     # Pretrained checkpoint path
+    pretrained_checkpoint: Union[str, Path] = "/home/ubuntu/openvla-oft/runs/openvla-7b+pegasus_drone_sim+b8+lr-0.0005+lora-r32+dropout-0.0--20000_chkpt"     # Pretrained checkpoint path
 
     use_l1_regression: bool = True                   # If True, uses continuous action head with L1 regression objective
     use_diffusion: bool = False                      # If True, uses continuous action head with diffusion modeling objective (DDIM)
     num_diffusion_steps: int = 50                    # (When `diffusion==True`) Number of diffusion steps for inference
     use_film: bool = False                           # If True, uses FiLM to infuse language inputs into visual features
-    num_images_in_input: int = 3                     # Number of images in the VLA input (default: 3)
+    num_images_in_input: int = 1                     # Number of images in the VLA input (default: 3)
     use_proprio: bool = True                         # Whether to include proprio state in input
 
     center_crop: bool = True                         # Center crop? (if trained w/ random crop image aug)
     num_open_loop_steps: int = 25                    # Number of actions to execute open-loop before requerying policy
 
-    unnorm_key: Union[str, Path] = ""                # Action un-normalization key
+    unnorm_key: Union[str, Path] = "pegasus_drone_sim"                # Action un-normalization key
     use_relative_actions: bool = False               # Whether to use relative actions (delta joint angles)
 
     load_in_8bit: bool = False                       # (For OpenVLA only) Load with 8-bit quantization
