@@ -18,6 +18,19 @@ OXE_NAMED_MIXTURES: Dict[str, List[Tuple[str, float]]] = {
         ("pegasus_drone_sim", 1.0),
     ],
 
+    "evo_center_dodge_center": [
+        ("evo_center_dodge_center", 1.0),
+        # ("v2_tank_right", 1.0),
+        # ("v2_tank_left", 1.0)
+    ],
+
+    "pegasus_mix": [
+        # ("pegasus_drone_sim", 1.0),
+        ("tank_forest", 1.0),
+        ("tank_straight", 1.0),
+        ("tank_wander", 1.0)
+    ],
+
     # === Bridge V2 Dataset ===
     "bridge": [
         # ("bridge_oxe", 1.0),                                    # Version of Bridge V2 in Open-X GCP Bucket

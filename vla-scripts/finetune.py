@@ -61,26 +61,36 @@ from prismatic.vla.constants import (
 from prismatic.vla.datasets import RLDSBatchTransform, RLDSDataset
 from prismatic.vla.datasets.rlds.utils.data_utils import save_dataset_statistics
 
+
+def clear_gpu_memory():
+    """Clear GPU memory cache to prevent OOM errors."""
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+
+
 # Sane Defaults
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 
 @dataclass
 class FinetuneConfig:
     # fmt: off
     vla_path: str = "openvla/openvla-7b"             # Path to OpenVLA model (on HuggingFace Hub or stored locally)
+    # vla_path: str = "runs/gadgetv3/openvla-7b+pegasus_mix+b16+lr-0.0005+lora-r32+dropout-0.0--image_aug--5000_chkpt"             # Path to OpenVLA model (on HuggingFace Hub or stored locally)
 
     # Dataset
-    data_root_dir: Path = Path("~/datasets")      # Directory containing RLDS datasets
-    dataset_name: str = "pegasus_drone_sim"    # Name of fine-tuning dataset (e.g., `aloha_scoop_x_into_bowl`)
-    run_root_dir: Path = Path("runs")                # Path to directory to store logs & checkpoints
-    shuffle_buffer_size: int = 100_000               # Dataloader shuffle buffer size (can reduce if OOM errors occur)
+    data_root_dir: Path = Path("~/bluecat-trainingdata")      # Directory containing RLDS datasets
+    dataset_name: str = "evo_dodge_tank"    # Name of fine-tuning dataset (e.g., `aloha_scoop_x_into_bowl`)
+    run_root_dir: Path = Path("runs/gadgetv9")                # Path to directory to store logs & checkpoints
+    shuffle_buffer_size: int = 25_000               # Dataloader shuffle buffer size (can reduce if OOM errors occur)
 
     # Algorithm and architecture
     use_l1_regression: bool = True                   # If True, trains continuous action head with L1 regression objective
     use_diffusion: bool = False                      # If True, trains continuous action head with diffusion modeling objective (DDIM)
     num_diffusion_steps: int = 50                    # (When `diffusion==True`) Number of diffusion steps for training
-    use_film: bool = True                           # If True, uses FiLM to infuse language inputs into visual features
+    use_film: bool = False                           # If True, uses FiLM to infuse language inputs into visual features
     num_images_in_input: int = 1                     # Number of images in the VLA input (default: 1)
     use_proprio: bool = True                        # If True, includes robot proprioceptive state in input
 
@@ -88,18 +98,18 @@ class FinetuneConfig:
     batch_size: int = 8                              # Batch size per device (total batch size = batch_size * num GPUs)
     learning_rate: float = 5e-4                      # Learning rate
     lr_warmup_steps: int = 0                         # Number of steps to warm up learning rate (from 10% to 100%)
-    num_steps_before_decay: int = 100_000            # Number of steps before LR decays by 10x
-    grad_accumulation_steps: int = 1                 # Number of gradient accumulation steps
-    max_steps: int = 10_000                          # Max number of training steps
-    use_val_set: bool = True                         # If True, uses validation set and log validation metrics
-    val_freq: int = 1_000                           # (When `use_val_set==True`) Validation set logging frequency in steps
+    num_steps_before_decay: int = 15_000            # Number of steps before LR decays by 10x
+    grad_accumulation_steps: int = 4                 # Number of gradient accumulation steps
+    max_steps: int = 5_000                          # Max number of training steps
+    use_val_set: bool = False                         # If True, uses validation set and log validation metrics
+    val_freq: int = 5000                           # (When `use_val_set==True`) Validation set logging frequency in steps
     val_time_limit: int = 180                        # (When `use_val_set==True`) Time limit for computing validation metrics
     save_freq: int = 5_000                          # Checkpoint saving frequency in steps
     save_latest_checkpoint_only: bool = False        # If True, saves only 1 checkpoint, overwriting latest checkpoint
                                                      #   (If False, saves all checkpoints)
     resume: bool = False                          # If True, resumes from checkpoint
     resume_step: Optional[int] = 5_000                # (When `resume==True`) Step number that we are resuming from
-    image_aug: bool = False #Turn this back on                          # If True, trains with image augmentations (HIGHLY RECOMMENDED)
+    image_aug: bool = False                         # If True, trains with image augmentations (HIGHLY RECOMMENDED)
     diffusion_sample_freq: int = 50                  # (When `use_diffusion==True`) Frequency for sampling in steps
 
     # LoRA

@@ -47,12 +47,49 @@ class ActionEncoding(IntEnum):
     JOINT_POS = 2           # Joint Delta Position (7) + Gripper Open/Close (1)
     JOINT_POS_BIMANUAL = 3  # Joint Delta Position (2 x [ Joint Delta Position (6) + Gripper Open/Close (1) ])
     EEF_R6 = 4              # EEF Delta XYZ (3) + R6 (6) + Gripper Open/Close (1)
+    DRONE_ACTION = 5        # Drone Action (3D position + yaw)
     # fmt: on
 
 
 # === Individual Dataset Configs ===
 OXE_DATASET_CONFIGS = {
     # Add to OXE_DATASET_CONFIGS
+    "pegasus_mix" : {
+        "image_obs_keys": {"primary": "image", "secondary": None, "wrist": None},
+        "depth_obs_keys": {"primary": None, "secondary": None, "wrist": None},
+        "state_obs_keys": ["proprio"],
+        "state_encoding": StateEncoding.POS_EULER,  # Choose appropriate encoding
+        "action_encoding": ActionEncoding.DRONE_ACTION,  # Or create a custom encoding if needed
+        "language_key": "language_instruction",
+        "absolute_action_mask": [False, False, False, False, False, False, False],  # Adjust based on your action semantics
+	},
+    "evo_center_dodge_center" : {
+        "image_obs_keys": {"primary": "image", "secondary": None, "wrist": None},
+        "depth_obs_keys": {"primary": None, "secondary": None, "wrist": None},
+        "state_obs_keys": ["proprio"],
+        "state_encoding": StateEncoding.POS_EULER,  # Choose appropriate encoding
+        "action_encoding": ActionEncoding.DRONE_ACTION,  # Or create a custom encoding if needed
+        "language_key": "language_instruction",
+        "absolute_action_mask": [True, True, True, True],  # Adjust based on your action semantics
+	},
+    "v2_tank_right" : {
+        "image_obs_keys": {"primary": "image", "secondary": None, "wrist": None},
+        "depth_obs_keys": {"primary": None, "secondary": None, "wrist": None},
+        "state_obs_keys": ["proprio"],
+        "state_encoding": StateEncoding.POS_EULER,  # Choose appropriate encoding
+        "action_encoding": ActionEncoding.DRONE_ACTION,  # Or create a custom encoding if needed
+        "language_key": "language_instruction",
+        "absolute_action_mask": [False, False, False, False],  # Adjust based on your action semantics
+	},
+    "v2_tank_left" : {
+        "image_obs_keys": {"primary": "image", "secondary": None, "wrist": None},
+        "depth_obs_keys": {"primary": None, "secondary": None, "wrist": None},
+        "state_obs_keys": ["proprio"],
+        "state_encoding": StateEncoding.POS_EULER,  # Choose appropriate encoding
+        "action_encoding": ActionEncoding.DRONE_ACTION,  # Or create a custom encoding if needed
+        "language_key": "language_instruction",
+        "absolute_action_mask": [False, False, False, False],  # Adjust based on your action semantics
+	},
     "pegasus_drone_sim" : {
         "image_obs_keys": {"primary": "image", "secondary": None, "wrist": None},
         "depth_obs_keys": {"primary": None, "secondary": None, "wrist": None},

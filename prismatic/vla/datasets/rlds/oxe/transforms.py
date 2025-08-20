@@ -38,12 +38,12 @@ def drone_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
     # print('*'*50)
     # print(trajectory)
     action_dim = trajectory["action"]['control_values'].shape[-1]
-    if action_dim < 7:
-        # Pad to make it 7D (3D position + 3D rotation + 1D gripper-like control)
-        padding = tf.zeros((tf.shape(trajectory["action"]['control_values'])[0], 7 - action_dim), dtype=tf.float32)
+    if action_dim < 4:
+        # Pad to make it 4D (3D position + yaw)
+        padding = tf.zeros((tf.shape(trajectory["action"]['control_values'])[0], 4 - action_dim), dtype=tf.float32)
         trajectory["action"] = tf.concat([trajectory["action"]['control_values'], padding], axis=-1)
     else:
-        pass
+        trajectory["action"] = trajectory["action"]['control_values']
 #        trajectory["action"] = trajectory["steps/action"]
     
     # Handle observation
@@ -57,27 +57,30 @@ def drone_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
     #     trajectory["observation"]["image"] = tf.cast(trajectory["observation"]["image"], tf.uint8)
     
     # Handle state (proprioceptive state)
-    if "control" in trajectory["observation"]:
-        control = trajectory["observation"]["control"]
-        control_dim = control.shape[-1]
-        if control_dim < 5:
-            padding = tf.zeros((tf.shape(control)[0], 5 - control_dim), dtype=tf.float32)
-            trajectory["observation"]["proprio"] = tf.concat([control, padding], axis=-1)
-        else:
-            trajectory["observation"]["proprio"] = control
-    elif "velocity" in trajectory["observation"]:
-        # trajectory["observation"]["proprio"] = trajectory["observation"]["velocity"]
-        velocity = trajectory["observation"]["velocity"]
-        velocity_dim = velocity.shape[-1]
-        if velocity_dim < 5:
-            # Pad with zeros to make it 5D
-            padding = tf.zeros((tf.shape(velocity)[0], 5 - velocity_dim), dtype=tf.float32)
-            trajectory["observation"]["proprio"] = tf.concat([velocity, padding], axis=-1)
-        else:
-            trajectory["observation"]["proprio"] = velocity
+    # if "control" in trajectory["observation"]:
+    control = trajectory["observation"]["control"]
+    control_dim = control.shape[-1]
+    if control_dim < 4:
+        padding = tf.zeros((tf.shape(control)[0], 4 - control_dim), dtype=tf.float32)
+        trajectory["observation"]["proprio"] = tf.concat([control, padding], axis=-1)
+    else:
+        trajectory["observation"]["proprio"] = control
+
+    # Rename 'camera_image' to 'image' in the observation if present
+    trajectory["observation"]["image"] = trajectory["observation"].pop("camera_image")
+    # elif "velocity" in trajectory["observation"]:
+    #     # trajectory["observation"]["proprio"] = trajectory["observation"]["velocity"]
+    #     velocity = trajectory["observation"]["velocity"]
+    #     velocity_dim = velocity.shape[-1]
+    #     if velocity_dim < 5:
+    #         # Pad with zeros to make it 5D
+    #         padding = tf.zeros((tf.shape(velocity)[0], 5 - velocity_dim), dtype=tf.float32)
+    #         trajectory["observation"]["proprio"] = tf.concat([velocity, padding], axis=-1)
+    #     else:
+    #         trajectory["observation"]["proprio"] = velocity
     
     # Handle language instruction
-    trajectory["language_instruction"] = tf.fill(tf.shape(trajectory["action"])[:1], "Attack the tank in front of you")
+    trajectory["language_instruction"] = tf.fill(tf.shape(trajectory["action"])[:1], "Inspect the car on the street")
     # print('*'*50)
     # print(trajectory)
     # print('*'*50)
@@ -944,6 +947,11 @@ def aloha_dataset_transform(trajectory: Dict[str, Any]) -> Dict[str, Any]:
 OXE_STANDARDIZATION_TRANSFORMS = {
     # Add to OXE_STANDARDIZATION_TRANSFORMS
     "pegasus_drone_sim": drone_dataset_transform,
+    "pegasus_mix": drone_dataset_transform,
+    "evo_center_dodge_center": drone_dataset_transform,
+    "v2_tank_center": drone_dataset_transform,
+    "v2_tank_right": drone_dataset_transform,
+    "v2_tank_left": drone_dataset_transform,
     "drone_navigation" : drone_dataset_transform,
     "bridge_oxe": bridge_oxe_dataset_transform,
     "bridge_orig": bridge_orig_dataset_transform,

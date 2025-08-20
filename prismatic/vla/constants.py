@@ -25,9 +25,9 @@ class NormalizationType(str, Enum):
 # Define constants for each robot platform
 # Define constants for your drone dataset
 DRONE_CONSTANTS = {
-    "NUM_ACTIONS_CHUNK": 8,  # Number of actions to predict at once (adjust based on your task)
-    "ACTION_DIM": 7,         # Padded to 7D to match OpenVLA expectations
-    "PROPRIO_DIM": 5,        # Based on your state dimension
+    "NUM_ACTIONS_CHUNK": 3,  # Number of actions to predict at once (adjust based on your task)
+    "ACTION_DIM": 4,         # Padded to 7D to match OpenVLA expectations
+    "PROPRIO_DIM": 4,        # Based on your state dimension
     "ACTION_PROPRIO_NORMALIZATION_TYPE": NormalizationType.BOUNDS,  # Choose appropriate normalization
 }
 

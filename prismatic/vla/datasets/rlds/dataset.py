@@ -172,19 +172,6 @@ def make_dataset_from_rlds(
         if standardize_fn is not None:
             traj = standardize_fn(traj)
 
-	    # Check for SkipDecoding objects and handle them
-        def safe_access(data, key):
-            if key not in data:
-                return None
-            value = data[key]
-            if isinstance(value, tfds.decode.SkipDecoding):
-                # Either return empty tensor for skipped data
-                # For images, return empty string which will be handled later in decode_and_resize
-                if key.startswith('image') or key.endswith('image'):
-                    return tf.constant("")
-                # For other data, return empty tensor with appropriate shape
-                return tf.zeros([tf.shape(traj['action'])[0], 1], dtype=tf.float32)
-            return value
 
         if not all(k in traj for k in REQUIRED_KEYS):
             raise ValueError(
@@ -199,11 +186,12 @@ def make_dataset_from_rlds(
             if old is None:
                 new_obs[f"image_{new}"] = tf.repeat("", traj_len)  # padding
             else:
-                img_data = safe_access(old_obs, old)
-                if img_data is None:
-                    new_obs[f"image_{new}"] = tf.repeat("", traj_len) # padding
-                else:
-                    new_obs[f"image_{new}"] = img_data
+                new_obs[f"image_{new}"] = old_obs[old]
+                # img_data = safe_access(old_obs, old)
+                # if img_data is None:
+                #     new_obs[f"image_{new}"] = tf.repeat("", traj_len) # padding
+                # else:
+                #     new_obs[f"image_{new}"] = img_data
 
         for new, old in depth_obs_keys.items():
             if old is None:
@@ -257,8 +245,8 @@ def make_dataset_from_rlds(
 
         return traj
 
+    print(f"*****     Dataset name: {name}, data_dir: {data_dir}")
     builder = tfds.builder(name, data_dir=data_dir)
-    print("BUILDER******** dataset.py line 261")
     # load or compute dataset statistics
     if isinstance(dataset_statistics, str):
         with tf.io.gfile.GFile(dataset_statistics, "r") as f:
@@ -280,7 +268,6 @@ def make_dataset_from_rlds(
     dataset_statistics = tree_map(np.array, dataset_statistics)
 
     # skip normalization for certain action dimensions
-    #action_normalization_mask = None
     if action_normalization_mask is not None:
         if len(action_normalization_mask) != dataset_statistics["action"]["mean"].shape[-1]:
             raise ValueError(
@@ -292,18 +279,7 @@ def make_dataset_from_rlds(
     # construct the dataset
     split = "train" if train else "validation"
 
-    decoders = {
-#        "steps/observation/image": tfds.decode.SkipDecoding(),  # First register all as skip
-        "*": None  # Then force decode everything
-    }
-    print("dataset.py line 305 (It is going to hang here):", '*'*50)
-    dataset = dl.DLataset.from_rlds(builder, split=split, shuffle=shuffle, num_parallel_reads=num_parallel_reads)#, decoders=decoders)
-    # for ind, element in enumerate(dataset.as_numpy_iterator()):
-    #     print(ind)
-    #     print(element.keys())
-    #     print("*"*50)
-    #     if ind > 10:
-    #         break
+    dataset = dl.DLataset.from_rlds(builder, split=split, shuffle=shuffle, num_parallel_reads=num_parallel_reads)
     dataset = dataset.traj_map(restructure, num_parallel_calls)
     dataset = dataset.traj_map(
         partial(
@@ -381,7 +357,6 @@ def apply_trajectory_transforms(
 
     # updates the "task" dict
     if goal_relabeling_strategy is not None:
-        print("RUNNING GOAL RELABELING")
         dataset = dataset.traj_map(
             partial(getattr(goal_relabeling, goal_relabeling_strategy), **goal_relabeling_kwargs),
             num_parallel_calls,
@@ -389,7 +364,6 @@ def apply_trajectory_transforms(
 
     # must run task augmentation before chunking, in case it changes goal timesteps
     if train and task_augment_strategy is not None:
-        print("RUNNING TASK AUGMENTATION")
         # perform task augmentation (e.g., dropping keys)
         dataset = dataset.traj_map(
             partial(
@@ -399,16 +373,6 @@ def apply_trajectory_transforms(
             num_parallel_calls,
         )   
 
-    # print(train, subsample_length)
-    # print("apply_trajectory_transforms******** dataset.py line 406")
-    # for ind, element in enumerate(dataset.as_numpy_iterator()):
-    #     print(ind)
-    #     print(element.keys())
-    #     print("*"*50)
-    #     if ind > 10:
-    #         break
-    print("Error happens here dataset.py line 416")
-    # ERROR HAPPENS HERE vvvvv
     # chunks observations and actions, giving them a new axis at index 1 of size `window_size` and
     # `window_size + future_action_window_size`, respectively
     dataset = dataset.traj_map(
@@ -419,15 +383,6 @@ def apply_trajectory_transforms(
         ),
         num_parallel_calls,
     )
-
-    # print(train, subsample_length)
-    # print("apply_trajectory_transforms******** dataset.py line 418")
-    # for ind, element in enumerate(dataset.as_numpy_iterator()):
-    #     print(ind)
-    #     print(element.keys())
-    #     print("*"*50)
-    #     if ind > 10:
-    #         break
 
     if train and subsample_length is not None:
         dataset = dataset.traj_map(
@@ -592,7 +547,10 @@ def make_interleaved_dataset(
 
     # Get Dataset Sizes
     dataset_sizes, all_dataset_statistics = [], {}
+
     for dataset_kwargs in dataset_kwargs_list:
+        print(f"dataset_kwargs: {dataset_kwargs}")
+        print("*"*50)
         data_kwargs = copy.deepcopy(dataset_kwargs)
         if "dataset_frame_transform_kwargs" in data_kwargs:
             data_kwargs.pop("dataset_frame_transform_kwargs")
